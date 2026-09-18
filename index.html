@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Tarjeta Gaga</title>
+<style>
+  :root{
+    --gaga-pink:#e8308a;
+    --gaga-ink:#000;
+    --gaga-page:transparent;
+    --gaga-card-radius:0px;
+  }
+
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--gaga-page);
+    display:grid;
+    place-items:center;
+    overflow:hidden;
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  .gaga-card{
+    position:relative;
+    aspect-ratio:298.86 / 279.03;
+    width:min(100vw, calc(100vh * 1.0711));
+    background:var(--gaga-pink);
+    border-radius:var(--gaga-card-radius);
+    overflow:hidden;
+    will-change:transform;
+    transform-style:preserve-3d;
+    cursor:crosshair;
+  }
+
+  .gaga-layer{
+    position:absolute;
+    pointer-events:none;
+    user-select:none;
+    -webkit-user-drag:none;
+    will-change:transform;
+  }
+
+  .gaga-bg{ inset:0; background:var(--gaga-pink); }
+
+  .gaga-font{
+    left:8.760%;
+    top:6.196%;
+    width:82.483%;
+    height:87.611%;
+    filter:brightness(0) saturate(100%);
+  }
+  .gaga-font.is-pink{ filter:none; }
+
+  .gaga-bars{ inset:0; width:100%; height:100%; }
+
+  @media (prefers-reduced-motion: reduce){
+    .gaga-layer{ transition:none; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="gaga-card" id="gagaCard" aria-label="Tarjeta Gaga" role="img">
+    <div class="gaga-layer gaga-bg" data-layer="bg"></div>
+    <img class="gaga-layer gaga-font" data-layer="font" src="/font.svg" alt="">
+    <img class="gaga-layer gaga-bars" data-layer="bars" src="/bars.svg" alt="">
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tilt.js/1.2.1/tilt.jquery.min.js"></script>
+  <script>
+  (function () {
+    var CONFIG = {
+      travel: 14,
+      rest: 0.5,
+      invert: false,
+      bgParallax: 0.15,
+      barsParallax: 0.05,
+      ease: 0.12,
+      tilt: {
+        maxTilt: 12,
+        perspective: 900,
+        scale: 1.03,
+        speed: 700
+      }
+    };
+
+    var VBW = 298.86;
+    var card = document.getElementById('gagaCard');
+    var layers = {};
+    card.querySelectorAll('[data-layer]').forEach(function (el) {
+      layers[el.getAttribute('data-layer')] = el;
+    });
+
+    if (window.jQuery && jQuery.fn.tilt) {
+      jQuery(card).tilt({
+        maxTilt: CONFIG.tilt.maxTilt,
+        perspective: CONFIG.tilt.perspective,
+        scale: CONFIG.tilt.scale,
+        speed: CONFIG.tilt.speed,
+        glare: false,
+        easing: 'cubic-bezier(.03,.98,.52,.99)'
+      });
+    }
+
+    var target = CONFIG.rest;
+    var current = CONFIG.rest;
+
+    function pointerToNorm(clientX) {
+      var r = card.getBoundingClientRect();
+      if (!r.width) return CONFIG.rest;
+      return Math.min(1, Math.max(0, (clientX - r.left) / r.width));
+    }
+
+    function setFromX(clientX) {
+      target = pointerToNorm(clientX);
+    }
+
+    var sign = CONFIG.invert ? 1 : -1;
+
+    card.addEventListener('mousemove', function (e) {
+      var r = card.getBoundingClientRect();
+      setFromX(r.left + e.offsetX * (r.width / card.offsetWidth));
+    });
+    card.addEventListener('mouseleave', function () { target = CONFIG.rest; });
+    card.addEventListener('touchstart', function (e) {
+      if (e.touches[0]) setFromX(e.touches[0].clientX);
+    }, { passive: true });
+    card.addEventListener('touchmove', function (e) {
+      if (e.touches[0]) setFromX(e.touches[0].clientX);
+    }, { passive: true });
+    card.addEventListener('touchend', function () { target = CONFIG.rest; });
+
+    function frame() {
+      current += (target - current) * CONFIG.ease;
+      var n = current - CONFIG.rest;
+
+      var pxPerUnit = card.clientWidth / VBW;
+      var mainDx = sign * n * CONFIG.travel * pxPerUnit;
+
+      if (layers.font) layers.font.style.transform = 'translate3d(' + mainDx.toFixed(2) + 'px,0,0)';
+      if (layers.bg) layers.bg.style.transform = 'translate3d(' + (-mainDx * CONFIG.bgParallax).toFixed(2) + 'px,0,0)';
+      if (layers.bars) layers.bars.style.transform = 'translate3d(' + (mainDx * CONFIG.barsParallax).toFixed(2) + 'px,0,0)';
+
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+
+    window.GagaCard = {
+      config: CONFIG,
+      setInk: function (pink) {
+        if (layers.font) layers.font.classList.toggle('is-pink', !!pink);
+      },
+      setNorm: function (n) { target = Math.min(1, Math.max(0, n)); }
+    };
+  })();
+  </script>
+</body>
+</html>
